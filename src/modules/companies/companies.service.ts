@@ -1,0 +1,145 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Company, CompanyDocument } from './schemas/company.schema';
+import { CreateCompanyDto } from './dto/create-company.dto';
+import { UpdateCompanyDto } from './dto/update-company.dto';
+
+@Injectable()
+export class CompaniesService {
+  constructor(
+    @InjectModel(Company.name) private companyModel: Model<CompanyDocument>,
+  ) {}
+
+  async create(createCompanyDto: CreateCompanyDto, userId: string): Promise<CompanyDocument> {
+    const initials = createCompanyDto.name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase();
+    
+    const company = new this.companyModel({
+      ...createCompanyDto,
+      userId,
+      initials: initials || createCompanyDto.name.substring(0, 2).toUpperCase(),
+      color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'),
+    });
+    return company.save();
+  }
+
+  async findAll(userId: string): Promise<CompanyDocument[]> {
+    return this.companyModel.find({ userId }).sort({ createdAt: -1 }).exec();
+  }
+
+  async findOne(id: string, userId: string): Promise<CompanyDocument> {
+    const company = await this.companyModel.findOne({ _id: id, userId });
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+    return company;
+  }
+
+  async findByStatus(status: string, userId: string): Promise<CompanyDocument[]> {
+    return this.companyModel.find({ userId, status }).sort({ createdAt: -1 }).exec();
+  }
+
+  async getPipelineStages(userId: string) {
+    const stages = [
+      'New Target',
+      'Researching',
+      'Contact Found',
+      'Outreach Sent',
+      'Conversation',
+      'Applied',
+      'Assessment',
+      'Interview',
+      'Offer',
+      'Hired',
+      'Closed Lost'
+    ];
+
+    const pipeline = await Promise.all(stages.map(async (stage) => {
+      const companies = await this.companyModel.find({ userId, status: stage }).lean();
+      return {
+        status: stage,
+        count: companies.length,
+        companies: companies.map(c => ({
+          id: c._id,
+          name: c.name,
+          initials: c.initials,
+          color: c.color,
+          role: c.role,
+          country: c.country,
+          remote: c.remote,
+          priority: c.priority,
+          lastContact: c.lastContact,
+          nextAction: c.nextAction,
+          contact: c.contact,
+          salary: c.salary,
+          tags: c.tags,
+        })),
+      };
+    }));
+
+    return pipeline;
+  }
+
+  async moveToStage(id: string, status: string, userId: string): Promise<CompanyDocument> {
+    const company = await this.companyModel.findOneAndUpdate(
+      { _id: id, userId },
+      { status },
+      { new: true, runValidators: true }
+    );
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+    return company;
+  }
+
+  async update(id: string, userId: string, updateCompanyDto: UpdateCompanyDto): Promise<CompanyDocument> {
+    const company = await this.companyModel.findOneAndUpdate(
+      { _id: id, userId },
+      updateCompanyDto,
+      { new: true, runValidators: true }
+    );
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+    return company;
+  }
+
+  async remove(id: string, userId: string): Promise<void> {
+    const result = await this.companyModel.deleteOne({ _id: id, userId });
+    if (result.deletedCount === 0) {
+      throw new NotFoundException('Company not found');
+    }
+  }
+
+  async getPipelineStats(userId: string) {
+    const companies = await this.companyModel.find({ userId }).lean();
+    
+    const total = companies.length;
+    const stages = {
+      'New Target': companies.filter(c => c.status === 'New Target').length,
+      'Researching': companies.filter(c => c.status === 'Researching').length,
+      'Contact Found': companies.filter(c => c.status === 'Contact Found').length,
+      'Outreach Sent': companies.filter(c => c.status === 'Outreach Sent').length,
+      'Conversation': companies.filter(c => c.status === 'Conversation').length,
+      'Applied': companies.filter(c => c.status === 'Applied').length,
+      'Assessment': companies.filter(c => c.status === 'Assessment').length,
+      'Interview': companies.filter(c => c.status === 'Interview').length,
+      'Offer': companies.filter(c => c.status === 'Offer').length,
+      'Hired': companies.filter(c => c.status === 'Hired').length,
+      'Closed Lost': companies.filter(c => c.status === 'Closed Lost').length,
+    };
+
+    const conversionRates = {
+      toInterview: total > 0 ? ((stages.Interview / total) * 100).toFixed(1) : 0,
+      toOffer: total > 0 ? ((stages.Offer / total) * 100).toFixed(1) : 0,
+      toHired: total > 0 ? ((stages.Hired / total) * 100).toFixed(1) : 0,
+    };
+
+    return { total, stages, conversionRates };
+  }
+}
