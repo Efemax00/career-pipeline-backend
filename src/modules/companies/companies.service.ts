@@ -42,7 +42,7 @@ export class CompaniesService {
     userId: string,
     verticalSlug: string = "career",
   ): Promise<CompanyDocument> {
-    const { contact, task, event, note, ...companyData } = createCompanyDto;
+    const { contactInfo, task, event, note, ...companyData } = createCompanyDto;
 
     const initials = companyData.name
       .split(" ")
@@ -66,18 +66,18 @@ export class CompaniesService {
 
     // Auto-create linked records if provided
     try {
-      if (contact && (contact.name || contact.email || contact.phone)) {
+      if (contactInfo && (contactInfo.name || contactInfo.email || contactInfo.phone)) {
         await this.contactsService.create(
           {
-            name: contact.name || companyData.ownerName || "Contact",
-            title: contact.title || "",
+            name: contactInfo.name || companyData.ownerName || "Contact",
+            title: contactInfo.title || "",
             company: saved.name,
             companyId: saved._id.toString(),
-            email: contact.email || companyData.email || "",
-            phone: contact.phone || companyData.phone || "",
+            email: contactInfo.email || companyData.email || "",
+            phone: contactInfo.phone || companyData.phone || "",
             country: companyData.country || "",
-            relationship: contact.relationship || "Cold",
-            notes: contact.notes || "",
+            relationship: contactInfo.relationship || "Cold",
+            notes: contactInfo.notes || "",
           } as any,
           userId,
           verticalSlug,
