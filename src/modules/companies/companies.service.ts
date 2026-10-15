@@ -4,13 +4,21 @@ import { Model } from "mongoose";
 import { Company, CompanyDocument } from "./schemas/company.schema";
 import { CreateCompanyDto } from "./dto/create-company.dto";
 import { UpdateCompanyDto } from "./dto/update-company.dto";
+import { CalendarService } from "../calendar/calendar.service";
+import { ContactsService } from "../contacts/contacts.service";
+import { TasksService } from "../tasks/tasks.service";
+import { NotesService } from "../notes/notes.service";
+
 
 @Injectable()
 export class CompaniesService {
   constructor(
-    @InjectModel(Company.name) private companyModel: Model<CompanyDocument>,
-  ) {}
-
+  @InjectModel(Company.name) private companyModel: Model<CompanyDocument>,
+  private contactsService: ContactsService,
+  private tasksService: TasksService,
+  private notesService: NotesService,
+  private calendarService: CalendarService,
+) {}
   /**
    * Scopes a Mongo filter to a user + vertical.
    * Legacy docs with no verticalSlug are treated as 'career'.
@@ -29,30 +37,104 @@ export class CompaniesService {
     return { userId, verticalSlug };
   }
 
-  async create(
-    createCompanyDto: CreateCompanyDto,
+    async create(
+    createCompanyDto: any,
     userId: string,
     verticalSlug: string = "career",
   ): Promise<CompanyDocument> {
-    const initials = createCompanyDto.name
+    const { contact, task, event, note, ...companyData } = createCompanyDto;
+
+    const initials = companyData.name
       .split(" ")
-      .map((word) => word[0])
+      .map((word: string) => word[0])
       .join("")
       .substring(0, 2)
       .toUpperCase();
 
     const company = new this.companyModel({
-      ...createCompanyDto,
+      ...companyData,
       userId,
       verticalSlug,
-      initials: initials || createCompanyDto.name.substring(0, 2).toUpperCase(),
+      initials: initials || companyData.name.substring(0, 2).toUpperCase(),
       color:
         "#" +
         Math.floor(Math.random() * 16777215)
           .toString(16)
           .padStart(6, "0"),
     });
-    return company.save();
+    const saved = await company.save();
+
+    // Auto-create linked records if provided
+    try {
+      if (contact && (contact.name || contact.email || contact.phone)) {
+        await this.contactsService.create(
+          {
+            name: contact.name || companyData.ownerName || "Contact",
+            title: contact.title || "",
+            company: saved.name,
+            companyId: saved._id.toString(),
+            email: contact.email || companyData.email || "",
+            phone: contact.phone || companyData.phone || "",
+            country: companyData.country || "",
+            relationship: contact.relationship || "Cold",
+            notes: contact.notes || "",
+          } as any,
+          userId,
+          verticalSlug,
+        );
+      }
+
+      if (task && task.title) {
+        await this.tasksService.create(
+          {
+            title: task.title,
+            description: task.description || "",
+            companyId: saved._id.toString(),
+            companyName: saved.name,
+            priority: task.priority || "Medium",
+            status: task.status || "To Do",
+            dueDate: task.dueDate || "",
+          } as any,
+          userId,
+          verticalSlug,
+        );
+      }
+
+      if (event && event.title && event.date) {
+        await this.calendarService.create(
+          {
+            title: event.title,
+            date: event.date,
+            time: event.time || "",
+            type: event.type || "followup",
+            companyId: saved._id.toString(),
+            companyName: saved.name,
+            description: event.description || "",
+          } as any,
+          userId,
+          verticalSlug,
+        );
+      }
+
+      if (note && (note.title || note.content)) {
+        await this.notesService.create(
+          {
+            title: note.title || `Note — ${saved.name}`,
+            content: note.content || "",
+            folder: note.folder || `${verticalSlug} notes`,
+            tags: note.tags || [verticalSlug],
+            pinned: false,
+          } as any,
+          userId,
+          verticalSlug,
+        );
+      }
+    } catch (err: any) {
+      // Don't fail the whole request if a linked record fails
+      console.error("Linked record creation failed:", err.message);
+    }
+
+    return saved;
   }
 
   async findAll(
@@ -202,5 +284,33 @@ export class CompaniesService {
     };
 
     return { total, stages, conversionRates };
+  }
+
+    async getExport(userId: string, verticalSlug: string = "career") {
+    const companies = await this.companyModel
+      .find(this.scope(userId, verticalSlug))
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return companies.map((c: any) => ({
+      _id: c._id,
+      name: c.name,
+      phone: c.phone || c.contact || "",
+      whatsapp: c.whatsapp || "",
+      email: c.email || "",
+      address: c.address || "",
+      city: c.city || "",
+      state: c.state || "",
+      country: c.country || "",
+      ownerName: c.ownerName || "",
+      roomCount: c.roomCount || 0,
+      priceRange: c.priceRange || "",
+      status: c.status || "",
+      priority: c.priority || "",
+      website: c.website || "",
+      notes: c.notes || "",
+      tags: c.tags || [],
+      createdAt: c.createdAt,
+    }));
   }
 }

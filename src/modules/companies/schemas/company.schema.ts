@@ -66,6 +66,42 @@ export class Company {
 
   @Prop({ type: String, default: "career", index: true })
   verticalSlug: string;
+
+  @Prop({ type: String })
+  phone: string;
+
+  @Prop({ type: String })
+  whatsapp: string;
+
+  @Prop({ type: String })
+  email: string;
+
+  @Prop({ type: String })
+  address: string;
+
+  @Prop({ type: String })
+  city: string;
+
+  @Prop({ type: String })
+  state: string;
+
+  @Prop({ type: String })
+  ownerName: string;
+
+  @Prop({ type: Number })
+  roomCount: number;
+
+  @Prop({ type: String })
+  priceRange: string;
+
+  @Prop({ type: [String], default: [] })
+  amenities: string[];
+
+  @Prop({ type: [String], default: [] })
+  photos: string[];
+
+  @Prop({ type: String })
+  notes: string;
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

@@ -51,6 +51,17 @@ export class CompaniesController {
     );
   }
 
+    @Get("export")
+  async getExport(
+    @Request() req,
+    @Headers() headers?: Record<string, any>,
+  ) {
+    return this.companiesService.getExport(
+      req.user.userId,
+      this.vertical(headers || {}),
+    );
+  }
+
   @Get(":id")
   async findOne(@Param("id") id: string, @Request() req) {
     return this.companiesService.findOne(id, req.user.userId);
