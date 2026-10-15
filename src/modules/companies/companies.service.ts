@@ -137,7 +137,7 @@ export class CompaniesService {
     return saved;
   }
 
-    async bulkCreate(
+      async bulkCreate(
     items: any[],
     userId: string,
     verticalSlug: string = "career",
@@ -148,7 +148,7 @@ export class CompaniesService {
 
     for (const item of items) {
       try {
-        // Skip duplicates by name + phone
+        // Skip duplicates by name
         if (item.name) {
           const existing = await this.companyModel.findOne({
             ...this.scope(userId, verticalSlug),
@@ -160,7 +160,30 @@ export class CompaniesService {
           }
         }
 
-        const c = await this.create(item, userId, verticalSlug);
+        // Auto-derive contactInfo from item fields when not explicitly provided
+        const enriched = { ...item };
+        if (!enriched.contactInfo && (enriched.ownerName || enriched.phone || enriched.email)) {
+          enriched.contactInfo = {
+            name: enriched.ownerName || enriched.name,
+            title: enriched.role || "Owner",
+            email: enriched.email || "",
+            phone: enriched.phone || "",
+            relationship: "Cold",
+          };
+        }
+
+        // Auto-create a "reach out" task for every imported hotel
+        if (!enriched.task) {
+          enriched.task = {
+            title: `Reach out to ${enriched.name}`,
+            description: "Initial outreach — call or WhatsApp",
+            priority: "Medium",
+            status: "To Do",
+            dueDate: "",
+          };
+        }
+
+        const c = await this.create(enriched, userId, verticalSlug);
         created.push({ _id: c._id, name: c.name });
       } catch (err: any) {
         failed.push({
@@ -179,6 +202,27 @@ export class CompaniesService {
       skippedItems: skipped,
       failedItems: failed,
     };
+  }
+
+    async deleteAllInVertical(
+    userId: string,
+    verticalSlug: string = "career",
+  ): Promise<{ deleted: number }> {
+    const result = await this.companyModel.deleteMany(
+      this.scope(userId, verticalSlug),
+    );
+    return { deleted: result.deletedCount || 0 };
+  }
+
+  async deleteManyByIds(
+    ids: string[],
+    userId: string,
+  ): Promise<{ deleted: number }> {
+    const result = await this.companyModel.deleteMany({
+      _id: { $in: ids },
+      userId,
+    });
+    return { deleted: result.deletedCount || 0 };
   }
 
   async findAll(

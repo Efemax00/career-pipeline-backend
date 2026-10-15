@@ -76,6 +76,28 @@ export class CompaniesController {
     );
   }
 
+    @Delete("bulk")
+  async deleteMany(
+    @Body() body: { ids: string[] },
+    @Request() req,
+  ) {
+    return this.companiesService.deleteManyByIds(
+      body.ids || [],
+      req.user.userId,
+    );
+  }
+
+  @Delete("all")
+  async deleteAll(
+    @Request() req,
+    @Headers() headers?: Record<string, any>,
+  ) {
+    return this.companiesService.deleteAllInVertical(
+      req.user.userId,
+      this.vertical(headers || {}),
+    );
+  }
+
   @Get(":id")
   async findOne(@Param("id") id: string, @Request() req) {
     return this.companiesService.findOne(id, req.user.userId);
