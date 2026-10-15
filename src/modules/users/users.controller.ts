@@ -1,26 +1,39 @@
-import { Controller, Get, Put, Delete, Body, Param, UseGuards, Request, HttpStatus, HttpCode } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { UpdateProfileDto } from './dto/update-profile.dto';
+import {
+  Controller, Get, Put, Body, UseGuards, Request, Param,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { User, UserDocument } from './schemas/user.schema';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { VerticalsService } from '../verticals/verticals.service';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private verticalsService: VerticalsService,
+  ) {}
 
-  @Get('profile')
-  async getProfile(@Request() req) {
-    return this.usersService.findOne(req.user.userId);
+  @Get('me')
+  async getMe(@Request() req) {
+    const user = await this.userModel.findOne({ uid: req.user.userId });
+    return user;
   }
 
-  @Put('profile')
-  async updateProfile(@Body() updateProfileDto: UpdateProfileDto, @Request() req) {
-    return this.usersService.updateProfile(req.user.userId, updateProfileDto);
-  }
+  @Put('me/vertical/:verticalId')
+  async setActiveVertical(
+    @Param('verticalId') verticalId: string,
+    @Request() req,
+  ) {
+    // Verify vertical exists
+    await this.verticalsService.findById(verticalId);
 
-  @Delete('profile')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteProfile(@Request() req) {
-    return this.usersService.remove(req.user.userId);
+    const user = await this.userModel.findOneAndUpdate(
+      { uid: req.user.userId },
+      { activeVerticalId: verticalId },
+      { new: true },
+    );
+    return user;
   }
 }

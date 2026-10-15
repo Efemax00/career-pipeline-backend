@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type UserDocument = User & Document;
 
@@ -25,6 +25,10 @@ export class User {
 
   @Prop()
   lastLoginAt: Date;
+
+  // Active vertical selection
+  @Prop({ type: Types.ObjectId, ref: 'Vertical', default: null })
+  activeVerticalId: Types.ObjectId | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

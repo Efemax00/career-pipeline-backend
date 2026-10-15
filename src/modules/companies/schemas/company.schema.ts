@@ -63,6 +63,9 @@ export class Company {
 
   @Prop({ type: String, required: true })
   userId: string;
+
+  @Prop({ type: String, default: "career", index: true })
+  verticalSlug: string;
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

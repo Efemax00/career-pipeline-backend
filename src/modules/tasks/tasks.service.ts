@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Task, TaskDocument } from './schemas/task.schema';
-import { CreateTaskDto } from './dto/create-task.dto';
-import { UpdateTaskDto } from './dto/update-task.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import { Task, TaskDocument } from "./schemas/task.schema";
+import { CreateTaskDto } from "./dto/create-task.dto";
+import { UpdateTaskDto } from "./dto/update-task.dto";
 
 @Injectable()
 export class TasksService {
@@ -11,42 +11,77 @@ export class TasksService {
     @InjectModel(Task.name) private taskModel: Model<TaskDocument>,
   ) {}
 
-  async create(createTaskDto: CreateTaskDto, userId: string): Promise<TaskDocument> {
+  private scope(userId: string, verticalSlug: string) {
+    if (verticalSlug === "career") {
+      return {
+        userId,
+        $or: [
+          { verticalSlug: "career" },
+          { verticalSlug: { $exists: false } },
+          { verticalSlug: null },
+        ],
+      };
+    }
+    return { userId, verticalSlug };
+  }
+
+  async create(
+    createTaskDto: CreateTaskDto,
+    userId: string,
+    verticalSlug: string = "career",
+  ): Promise<TaskDocument> {
     const task = new this.taskModel({
       ...createTaskDto,
       userId,
+      verticalSlug,
     });
     return task.save();
   }
 
-  async findAll(userId: string): Promise<TaskDocument[]> {
-    return this.taskModel.find({ userId }).sort({ createdAt: -1 }).exec();
+  async findAll(
+    userId: string,
+    verticalSlug: string = "career",
+  ): Promise<TaskDocument[]> {
+    return this.taskModel
+      .find(this.scope(userId, verticalSlug))
+      .sort({ createdAt: -1 })
+      .exec();
   }
 
   async findOne(id: string, userId: string): Promise<TaskDocument> {
     const task = await this.taskModel.findOne({ _id: id, userId });
     if (!task) {
-      throw new NotFoundException('Task not found');
+      throw new NotFoundException("Task not found");
     }
     return task;
   }
 
-  async findByCompany(companyId: string, userId: string): Promise<TaskDocument[]> {
+  async findByCompany(
+    companyId: string,
+    userId: string,
+  ): Promise<TaskDocument[]> {
     return this.taskModel.find({ companyId, userId }).exec();
   }
 
-  async findByContact(contactId: string, userId: string): Promise<TaskDocument[]> {
+  async findByContact(
+    contactId: string,
+    userId: string,
+  ): Promise<TaskDocument[]> {
     return this.taskModel.find({ contactId, userId }).exec();
   }
 
-  async update(id: string, userId: string, updateTaskDto: UpdateTaskDto): Promise<TaskDocument> {
+  async update(
+    id: string,
+    userId: string,
+    updateTaskDto: UpdateTaskDto,
+  ): Promise<TaskDocument> {
     const task = await this.taskModel.findOneAndUpdate(
       { _id: id, userId },
       updateTaskDto,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
     if (!task) {
-      throw new NotFoundException('Task not found');
+      throw new NotFoundException("Task not found");
     }
     return task;
   }
@@ -54,7 +89,7 @@ export class TasksService {
   async remove(id: string, userId: string): Promise<void> {
     const result = await this.taskModel.deleteOne({ _id: id, userId });
     if (result.deletedCount === 0) {
-      throw new NotFoundException('Task not found');
+      throw new NotFoundException("Task not found");
     }
   }
 }

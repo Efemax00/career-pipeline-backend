@@ -14,7 +14,7 @@ async function bootstrap() {
       'https://career-pipeline-835ee.web.app',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Vertical-Slug'],
     credentials: true,
   });
   

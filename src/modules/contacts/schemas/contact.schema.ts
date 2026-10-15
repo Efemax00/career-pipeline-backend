@@ -43,6 +43,10 @@ export class Contact {
 
   @Prop({ required: true })
   userId: string; // Firebase UID
+
+  @Prop({ type: String, default: "career", index: true })
+  verticalSlug: string;
+
 }
 
 export const ContactSchema = SchemaFactory.createForClass(Contact);

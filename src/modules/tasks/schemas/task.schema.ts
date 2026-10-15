@@ -46,6 +46,9 @@ export class Task {
 
   @Prop({ required: true })
   userId: string; // Firebase UID
+
+  @Prop({ type: String, default: "career", index: true })
+  verticalSlug: string;
 }
 
 export const TaskSchema = SchemaFactory.createForClass(Task);

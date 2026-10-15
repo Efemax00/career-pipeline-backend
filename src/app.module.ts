@@ -7,43 +7,38 @@ import { HealthModule } from './health/health.module';
 import { UsersModule } from './modules/users/users.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
-import { PipelineModule } from './modules/pipeline/pipeline.module';
-import { ApplicationsModule } from './modules/applications/applications.module';
 import { TasksModule } from './modules/tasks/tasks.module';
-import { CalendarModule } from './modules/calendar/calendar.module';
 import { NotesModule } from './modules/notes/notes.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { AiModule } from './modules/ai/ai.module';
 import { JobsModule } from './modules/jobs/jobs.module';
-import { NotificationsModule } from './modules/notifications/notifications.module';
-import { SettingsModule } from './modules/settings/settings.module';
+import { CompanyDiscoveryModule } from './modules/company-discovery/company-discovery.module';
+import { VerticalsModule } from './modules/verticals/verticals.module';
 import configuration from './config/configuration';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      load: [configuration],
-    }),
+    ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
     DatabaseModule,
     LoggerModule,
     AuthModule,
+    HealthModule,
+    VerticalsModule,
     UsersModule,
     CompaniesModule,
     ContactsModule,
-    PipelineModule,
-    ApplicationsModule,
     TasksModule,
-    CalendarModule,
     NotesModule,
+    CalendarModule,
     DocumentsModule,
     AnalyticsModule,
     DashboardModule,
+    AiModule,
     JobsModule,
-    NotificationsModule,
-    SettingsModule,
-    HealthModule,
+    CompanyDiscoveryModule,
   ],
 })
 export class AppModule {}

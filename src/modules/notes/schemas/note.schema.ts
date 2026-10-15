@@ -31,6 +31,9 @@ export class Note {
 
   @Prop({ required: true })
   userId: string; // Firebase UID
+
+  @Prop({ type: String, default: "career", index: true })
+  verticalSlug: string;
 }
 
 export const NoteSchema = SchemaFactory.createForClass(Note);

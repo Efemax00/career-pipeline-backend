@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
@@ -36,6 +37,7 @@
     "class-validator": "^0.15.1",
     "compression": "^1.8.1",
     "firebase-admin": "^11.11.1",
+    "groq-sdk": "^1.6.0",
     "helmet": "^8.3.0",
     "mongodb": "4.1",
     "mongoose": "^9.9.1",
