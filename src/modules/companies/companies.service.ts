@@ -137,6 +137,50 @@ export class CompaniesService {
     return saved;
   }
 
+    async bulkCreate(
+    items: any[],
+    userId: string,
+    verticalSlug: string = "career",
+  ) {
+    const created: any[] = [];
+    const failed: any[] = [];
+    const skipped: any[] = [];
+
+    for (const item of items) {
+      try {
+        // Skip duplicates by name + phone
+        if (item.name) {
+          const existing = await this.companyModel.findOne({
+            ...this.scope(userId, verticalSlug),
+            name: item.name,
+          });
+          if (existing) {
+            skipped.push({ name: item.name, reason: "already exists" });
+            continue;
+          }
+        }
+
+        const c = await this.create(item, userId, verticalSlug);
+        created.push({ _id: c._id, name: c.name });
+      } catch (err: any) {
+        failed.push({
+          name: item?.name || "unknown",
+          error: err.message,
+        });
+      }
+    }
+
+    return {
+      total: items.length,
+      created: created.length,
+      skipped: skipped.length,
+      failed: failed.length,
+      items: created,
+      skippedItems: skipped,
+      failedItems: failed,
+    };
+  }
+
   async findAll(
     userId: string,
     verticalSlug: string = "career",

@@ -62,6 +62,20 @@ export class CompaniesController {
     );
   }
 
+    @Post("bulk")
+  @HttpCode(HttpStatus.CREATED)
+  async bulkCreate(
+    @Body() body: { companies: any[] },
+    @Request() req,
+    @Headers() headers?: Record<string, any>,
+  ) {
+    return this.companiesService.bulkCreate(
+      body.companies || [],
+      req.user.userId,
+      this.vertical(headers || {}),
+    );
+  }
+
   @Get(":id")
   async findOne(@Param("id") id: string, @Request() req) {
     return this.companiesService.findOne(id, req.user.userId);
